@@ -1,37 +1,23 @@
-const Job = require('../models/Job');
+const { Job } = require('../models');
 
 // Create a Job
 exports.createJob = async (req, res) => {
   try {
-    console.log('Received job creation request:', {
-      body: req.body,
-      user: req.user,
-      headers: req.headers
-    });
-
-    const job = new Job({
+    const jobData = {
       ...req.body,
-      postedBy: req.user.id
-    });
+      postedBy: req.user._id,
+      employer: req.user._id // The employer is the same as the poster initially
+    };
 
-    console.log('Created job document:', job);
+    const job = await Job.create(jobData);
+    const populatedJob = await Job.findById(job._id)
+      .populate('postedBy', 'name email avatar')
+      .populate('employer', 'name email avatar');
 
-    await job.save();
-    console.log('Job saved successfully');
-
-    await job.populate('postedBy', 'username email');
-
-    res.status(201).json({
-      message: 'Job created successfully',
-      job
-    });
+    res.status(201).json({ job: populatedJob });
   } catch (error) {
     console.error('Error creating job:', error);
-    res.status(400).json({
-      message: 'Failed to create job',
-      error: error.message,
-      stack: error.stack
-    });
+    res.status(500).json({ message: 'Error creating job' });
   }
 };
 

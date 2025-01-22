@@ -9,7 +9,10 @@ router.get('/', jobController.getJobs);
 router.get('/:id', async (req, res) => {
   try {
     const job = await Job.findById(req.params.id)
-      .populate('employer', 'name email')
+      .populate('postedBy', 'name email avatar')
+      .populate('employer', 'name email avatar')
+      .populate('applicants.user', 'name email avatar')
+      .populate('selectedProvider', 'name email avatar')
       .select('-__v');
 
     if (!job) {

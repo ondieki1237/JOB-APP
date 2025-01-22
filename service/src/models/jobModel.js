@@ -48,6 +48,11 @@ if (mongoose.models.Job) {
         required: true
       }
     },
+    postedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+      required: true
+    },
     employer: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User',
@@ -94,10 +99,8 @@ if (mongoose.models.Job) {
     timestamps: true
   });
 
-  // Index for location-based queries
+  // Indexes
   jobSchema.index({ location: '2dsphere' });
-
-  // Index for text search
   jobSchema.index({
     title: 'text',
     description: 'text',
@@ -105,5 +108,6 @@ if (mongoose.models.Job) {
     skills: 'text'
   });
 
-  module.exports = mongoose.model('Job', jobSchema);
+  const Job = mongoose.model('Job', jobSchema);
+  module.exports = Job;
 } 

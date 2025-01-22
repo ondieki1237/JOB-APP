@@ -2,29 +2,29 @@ const Message = require('../models/messageModel');
 const User = require('../models/userModel');
 const Job = require('../models/jobModel');
 const { uploadToCloudinary } = require('../utils/cloudinary');
+const mongoose = require('mongoose');
 
 exports.sendMessage = async (req, res) => {
   try {
     const { jobId, receiverId, content, type } = req.body;
     const senderId = req.user._id;
 
-    // Validate job exists
-    const job = await Job.findById(jobId);
+    // Get job to verify receiver
+    const job = await Job.findById(jobId).populate('employer');
     if (!job) {
       return res.status(404).json({ message: 'Job not found' });
     }
 
-    // Validate receiver exists
-    const receiver = await User.findById(receiverId);
-    if (!receiver) {
-      return res.status(404).json({ message: 'Receiver not found' });
-    }
+    // Use job's employer ID if receiverId is not provided or invalid
+    const actualReceiverId = mongoose.Types.ObjectId.isValid(receiverId) 
+      ? receiverId 
+      : job.employer._id;
 
     let messageData = {
       jobId,
       sender: senderId,
-      receiver: receiverId,
-      content,
+      receiver: actualReceiverId,
+      content: content.trim(),
       type
     };
 
@@ -38,8 +38,8 @@ exports.sendMessage = async (req, res) => {
 
     // Populate sender and receiver details
     const populatedMessage = await Message.findById(message._id)
-      .populate('sender', 'name avatar')
-      .populate('receiver', 'name avatar');
+      .populate('sender', 'name email avatar')
+      .populate('receiver', 'name email avatar');
 
     res.status(201).json({
       message: 'Message sent successfully',
@@ -62,8 +62,8 @@ exports.getMessages = async (req, res) => {
       jobId,
       $or: [{ sender: userId }, { receiver: userId }]
     })
-      .populate('sender', 'name avatar')
-      .populate('receiver', 'name avatar')
+      .populate('sender', 'name email avatar')
+      .populate('receiver', 'name email avatar')
       .sort({ createdAt: -1 });
 
     res.json({ data: messages });
