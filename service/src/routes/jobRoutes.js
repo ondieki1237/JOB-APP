@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const jobController = require('../controllers/jobController');
 const authMiddleware = require('../middlewares/authMiddleware');
-const Job = require('../models/jobModel');
+const { Job } = require('../models');
 
 // Public routes
 router.get('/', jobController.getJobs);

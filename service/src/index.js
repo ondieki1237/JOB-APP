@@ -15,6 +15,8 @@ const notificationRoutes = require('./routes/notificationRoutes');
 const errorHandler = require('./middlewares/errorHandler');
 const initializeSockets = require('./sockets'); // Socket.IO events
 const financeRoutes = require('./routes/financeRoutes');
+const messageRoutes = require('./routes/messageRoutes');
+const fs = require('fs');
 
 // Connect to the database
 connectDB(mongoUri);
@@ -40,6 +42,12 @@ app.use(express.urlencoded({ extended: true }));
 // Initialize Socket.IO Events
 initializeSockets(io);
 
+// Ensure uploads directory exists
+const uploadsDir = path.join(__dirname, '../uploads');
+if (!fs.existsSync(uploadsDir)){
+    fs.mkdirSync(uploadsDir, { recursive: true });
+}
+
 // Routes
 app.get('/', (req, res) => {
   res.send('Welcome to the Blue Collar Jobs API');
@@ -57,6 +65,7 @@ app.use('/api/jobs', jobRoutes);
 app.use('/api/reviews', reviewRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/finance', financeRoutes);
+app.use('/api/messages', messageRoutes);
 
 // Error Handling Middleware - this should be the last middleware
 app.use(errorHandler);
