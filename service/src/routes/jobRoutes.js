@@ -6,29 +6,15 @@ const { Job } = require('../models');
 
 // Public routes
 router.get('/', jobController.getJobs);
-router.get('/:id', async (req, res) => {
-  try {
-    const job = await Job.findById(req.params.id)
-      .populate('postedBy', 'name email avatar')
-      .populate('employer', 'name email avatar')
-      .populate('applicants.user', 'name email avatar')
-      .populate('selectedProvider', 'name email avatar')
-      .select('-__v');
-
-    if (!job) {
-      return res.status(404).json({ message: 'Job not found' });
-    }
-
-    res.json({ job });
-  } catch (error) {
-    console.error('Error fetching job:', error);
-    res.status(500).json({ message: 'Server error' });
-  }
-});
+router.get('/:id', jobController.getJobById);
 
 // Protected routes
-router.post('/create', authMiddleware, jobController.createJob);
-router.post('/:jobId/apply', authMiddleware, jobController.applyToJob);
-router.post('/select-provider', authMiddleware, jobController.selectProvider);
+router.use(authMiddleware); // Apply auth middleware to all routes below
+
+// The full path will be /api/jobs/create
+router.post('/create', jobController.createJob);
+router.post('/:jobId/apply', jobController.applyToJob);
+router.post('/select-provider', jobController.selectProvider);
+router.get('/my-posted-jobs', jobController.getMyPostedJobs);
 
 module.exports = router;

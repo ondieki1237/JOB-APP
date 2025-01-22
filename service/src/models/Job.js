@@ -2,44 +2,52 @@ const mongoose = require('mongoose');
 const Schema = mongoose.Schema;
 
 const jobSchema = new Schema({
-  title: { type: String, required: true },
-  description: { type: String, required: true },
-  skillsRequired: [{ type: String }],
-  location: {
-    type: { type: String, enum: ['Point'], default: 'Point' },
-    coordinates: { type: [Number], default: [0, 0] }
+  title: { 
+    type: String, 
+    required: true 
   },
-  locationName: { type: String },
+  description: { 
+    type: String, 
+    required: true 
+  },
+  locationName: { 
+    type: String, 
+    required: true 
+  },
   budget: {
-    min: { type: Number, default: 0 },
-    max: { type: Number, default: 0 }
+    min: { 
+      type: Number, 
+      required: true 
+    },
+    max: { 
+      type: Number, 
+      required: true 
+    }
   },
   duration: {
     type: String,
     enum: ['Hourly', 'Daily', 'Weekly', 'Monthly', 'Fixed'],
-    default: 'Fixed'
+    required: true
   },
   companyDetails: {
-    name: { type: String, required: true },
-    description: String,
-    logo: String
+    name: { 
+      type: String, 
+      required: true 
+    },
+    description: String
   },
   requirements: {
     experience: String,
     education: String,
     certifications: [String]
   },
-  applicationDetails: {
-    deadline: Date,
-    howToApply: String,
-    applicationLink: String
+  isRemote: { 
+    type: Boolean, 
+    default: false 
   },
-  isRemote: { type: Boolean, default: false },
-  numberOfOpenings: { type: Number, default: 1 },
-  isConfidential: { type: Boolean, default: false },
-  contactInfo: {
-    email: String,
-    phone: String
+  numberOfOpenings: { 
+    type: Number, 
+    default: 1 
   },
   status: {
     type: String,
@@ -51,6 +59,28 @@ const jobSchema = new Schema({
     ref: 'User', 
     required: true 
   },
+  employer: { 
+    type: mongoose.Schema.Types.ObjectId, 
+    ref: 'User', 
+    required: true 
+  },
+  skillsRequired: [{ 
+    type: String 
+  }],
+  contactInfo: {
+    email: String,
+    phone: String
+  },
+  location: {
+    type: { type: String, enum: ['Point'], default: 'Point' },
+    coordinates: { type: [Number], default: [0, 0] }
+  },
+  applicationDetails: {
+    deadline: Date,
+    howToApply: String,
+    applicationLink: String
+  },
+  isConfidential: { type: Boolean, default: false },
   applicants: [{
     userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
     applicationMessage: String,

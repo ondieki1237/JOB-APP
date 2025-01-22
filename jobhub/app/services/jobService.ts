@@ -2,9 +2,9 @@ import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { API_URL } from '@/app/config';
 
-// Create axios instance
+// Create axios instance with the correct base URL
 const api = axios.create({
-  baseURL: API_URL,
+  baseURL: `${API_URL}/api`, // Add /api to the base URL
   timeout: 5000,
 });
 
@@ -50,7 +50,7 @@ export const jobService = {
   // Get all jobs with optional filters
   getJobs: async ({ search = '', status = [] } = {}) => {
     try {
-      const response = await api.get('/api/jobs', {
+      const response = await api.get('/jobs', {
         params: { search, status },
       });
       return response.data;
@@ -63,7 +63,7 @@ export const jobService = {
   // Get a single job by ID
   getJobById: async (id: string) => {
     try {
-      const response = await api.get(`/api/jobs/${id}`);
+      const response = await api.get(`/jobs/${id}`);
       return response.data;
     } catch (error: any) {
       console.error('Error fetching job details:', error);
@@ -83,12 +83,16 @@ export const jobService = {
         throw new Error('Authentication required');
       }
 
+      console.log('Sending job creation request with data:', jobData);
+
       const response = await api.post('/jobs/create', jobData, {
         headers: {
-          'Authorization': `Bearer ${token}`
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
         }
       });
       
+      console.log('Job creation response:', response.data);
       return response.data;
     } catch (error: any) {
       console.error('Error in createJob:', {
@@ -101,7 +105,7 @@ export const jobService = {
         throw new Error('Please login to post a job');
       }
       
-      throw error.response?.data || { message: 'Failed to create job' };
+      throw new Error(error.response?.data?.message || 'Failed to create job');
     }
   },
 
@@ -113,5 +117,25 @@ export const jobService = {
     } catch (error: any) {
       throw error.response?.data || { message: 'Failed to apply for job' };
     }
-  }
+  },
+
+  getMyPostedJobs: async () => {
+    try {
+      const token = await AsyncStorage.getItem('userToken');
+      
+      const response = await axios.get(
+        `${API_URL}/api/jobs/my-posted-jobs`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching posted jobs:', error);
+      throw error;
+    }
+  },
 }; 

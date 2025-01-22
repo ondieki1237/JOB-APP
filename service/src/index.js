@@ -39,6 +39,13 @@ app.use(cors({
 app.use(express.json()); // Use built-in body parser
 app.use(express.urlencoded({ extended: true }));
 
+// Debug middleware
+app.use((req, res, next) => {
+  console.log(`${req.method} ${req.url}`);
+  console.log('Body:', req.body);
+  next();
+});
+
 // Initialize Socket.IO Events
 initializeSockets(io);
 
@@ -68,7 +75,14 @@ app.use('/api/finance', financeRoutes);
 app.use('/api/messages', messageRoutes);
 
 // Error Handling Middleware - this should be the last middleware
-app.use(errorHandler);
+app.use((err, req, res, next) => {
+  console.error('Global error handler:', err);
+  res.status(500).json({
+    success: false,
+    message: 'Internal server error',
+    error: process.env.NODE_ENV === 'development' ? err.stack : undefined
+  });
+});
 
 // Graceful Shutdown
 process.on('SIGINT', async () => {

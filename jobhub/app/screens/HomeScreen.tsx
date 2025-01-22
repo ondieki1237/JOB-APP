@@ -241,11 +241,11 @@ export default function HomeScreen() {
     },
     {
       id: '2',
-      title: 'Find Work',
-      icon: 'search-web',
+      title: 'My Posted Jobs',
+      icon: 'briefcase-check',
       type: 'MaterialCommunityIcons',
-      color: ['#4FACFE', '#00F2FE'],
-      onPress: () => router.push('/(app)/job-list'),
+      color: ['#43E97B', '#38F9D7'],
+      onPress: () => router.push('/(app)/my-posted-jobs'),
     },
     {
       id: '3',
@@ -702,6 +702,7 @@ export default function HomeScreen() {
             <TouchableOpacity 
               key={category.id} 
               style={[styles.categoryItem, { width: width * 0.22 }]}
+              onPress={() => router.push(`/(app)/job-list`)}
             >
               <View style={[styles.categoryIcon, { backgroundColor: category.color }]}>
                 {renderIcon(category, 24)}
@@ -922,6 +923,27 @@ export default function HomeScreen() {
             <Text style={styles.blogMeta}>4 min read • Networking</Text>
           </TouchableOpacity>
         </ScrollView>
+      </View>
+
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Quick Actions</Text>
+        <View style={styles.actionButtons}>
+          <TouchableOpacity
+            style={styles.actionButton}
+            onPress={() => router.push('/(app)/active-jobs')}
+          >
+            <MaterialCommunityIcons name="briefcase-clock" size={24} color="#4630EB" />
+            <Text style={styles.actionButtonText}>Active Jobs</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.actionButton}
+            onPress={() => router.push('/(app)/my-posted-jobs')}
+          >
+            <MaterialCommunityIcons name="briefcase-check" size={24} color="#4630EB" />
+            <Text style={styles.actionButtonText}>My Posted Jobs</Text>
+          </TouchableOpacity>
+        </View>
       </View>
     </SafeAreaView>
   );
@@ -1672,5 +1694,28 @@ const styles = StyleSheet.create({
   detailText: {
     fontSize: 14,
     color: '#666',
+  },
+  actionButtons: {
+    flexDirection: 'row',
+    gap: 12,
+    marginTop: 12,
+  },
+  actionButton: {
+    flex: 1,
+    backgroundColor: '#fff',
+    padding: 16,
+    borderRadius: 12,
+    alignItems: 'center',
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+  },
+  actionButtonText: {
+    marginTop: 8,
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#333',
   },
 }); 
