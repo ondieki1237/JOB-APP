@@ -13,10 +13,11 @@ import { useRouter, useLocalSearchParams } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Button, Card, Chip } from 'react-native-paper';
+import { Button, Card, Chip, Divider } from 'react-native-paper';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { jobService } from '../services/jobService';
 import { LoadingSpinner } from '../components/LoadingSpinner';
+import { formatCurrency, formatDate } from '../utils/formatters';
 
 interface JobDetails {
   _id: string;
@@ -36,6 +37,25 @@ interface JobDetails {
   requirements?: string[];
   responsibilities?: string[];
   createdAt: string;
+  isRemote: boolean;
+  numberOfOpenings: number;
+  applicationDetails?: {
+    deadline: string;
+  };
+  skillsRequired?: string[];
+  requirements?: {
+    experience: string;
+    education: string;
+    certifications?: string[];
+  };
+  companyDetails?: {
+    name: string;
+    description: string;
+  };
+  contactInfo?: {
+    email?: string;
+    phone?: string;
+  };
 }
 
 export default function JobDetailsScreen() {
@@ -115,6 +135,16 @@ export default function JobDetailsScreen() {
     Alert.alert('Apply', 'Application functionality coming soon!');
   };
 
+  const renderDetailItem = (icon: string, label: string, value: string | number) => (
+    <View style={styles.detailItem}>
+      <MaterialCommunityIcons name={icon} size={24} color="#4630EB" />
+      <View style={styles.detailText}>
+        <Text variant="labelMedium" style={styles.detailLabel}>{label}</Text>
+        <Text variant="bodyMedium">{value}</Text>
+      </View>
+    </View>
+  );
+
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar style="light" />
@@ -189,7 +219,7 @@ export default function JobDetailsScreen() {
             <MaterialCommunityIcons name="currency-usd" size={24} color="#4630EB" />
             <View style={styles.detailTextContainer}>
               <Text style={styles.detailLabel}>Budget</Text>
-              <Text style={styles.detailText}>${job.budget.min} - ${job.budget.max}</Text>
+              <Text style={styles.detailText}>${formatCurrency(job.budget.min)} - ${formatCurrency(job.budget.max)}</Text>
             </View>
           </View>
         </Animated.View>
@@ -228,6 +258,33 @@ export default function JobDetailsScreen() {
             </Card.Content>
           </Card>
         )}
+
+        <Card style={[styles.section, styles.elevatedCard]}>
+          <Card.Content>
+            <Text style={styles.sectionTitle}>Application Details</Text>
+            {renderDetailItem('account-multiple', 'Positions Available', 
+              `${job.numberOfOpenings} ${job.numberOfOpenings > 1 ? 'positions' : 'position'}`
+            )}
+            {renderDetailItem('calendar-clock', 'Application Deadline', 
+              formatDate(job.applicationDetails?.deadline)
+            )}
+          </Card.Content>
+        </Card>
+
+        <Card style={[styles.section, styles.elevatedCard]}>
+          <Card.Content>
+            <Text style={styles.sectionTitle}>Company Details</Text>
+            <Text style={styles.description}>{job.companyDetails?.description || 'No company description available'}</Text>
+          </Card.Content>
+        </Card>
+
+        <Card style={[styles.section, styles.elevatedCard]}>
+          <Card.Content>
+            <Text style={styles.sectionTitle}>Contact Information</Text>
+            {job.contactInfo?.email && renderDetailItem('email', 'Email', job.contactInfo.email)}
+            {job.contactInfo?.phone && renderDetailItem('phone', 'Phone', job.contactInfo.phone)}
+          </Card.Content>
+        </Card>
       </ScrollView>
 
       <Animated.View 
@@ -441,5 +498,16 @@ const styles = StyleSheet.create({
   },
   errorButton: {
     backgroundColor: '#4630EB',
+  },
+  detailItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  detailText: {
+    flex: 1,
+  },
+  detailLabel: {
+    color: '#666',
   },
 }); 

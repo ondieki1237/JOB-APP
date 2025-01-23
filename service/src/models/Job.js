@@ -76,7 +76,16 @@ const jobSchema = new Schema({
     coordinates: { type: [Number], default: [0, 0] }
   },
   applicationDetails: {
-    deadline: Date,
+    deadline: {
+      type: Date,
+      required: true,
+      validate: {
+        validator: function(value) {
+          return value > new Date();
+        },
+        message: 'Deadline must be a future date'
+      }
+    },
     howToApply: String,
     applicationLink: String
   },
@@ -105,5 +114,6 @@ jobSchema.index({ location: '2dsphere' });
 jobSchema.index({ status: 1 });
 jobSchema.index({ 'budget.min': 1, 'budget.max': 1 });
 jobSchema.index({ title: 'text', description: 'text' });
+jobSchema.index({ 'applicationDetails.deadline': 1 });
 
 module.exports = mongoose.model('Job', jobSchema);

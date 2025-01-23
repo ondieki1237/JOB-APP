@@ -14,21 +14,31 @@ exports.createJob = async (req, res) => {
       });
     }
 
-    // Create job data with required fields
+    // Validate deadline
+    const deadline = new Date(req.body.applicationDetails?.deadline);
+    if (isNaN(deadline.getTime()) || deadline <= new Date()) {
+      return res.status(400).json({
+        success: false,
+        message: 'Please provide a valid future deadline'
+      });
+    }
+
     const jobData = {
       ...req.body,
       postedBy: req.user._id,
       employer: req.user._id,
-      status: 'Open'
+      status: 'Open',
+      applicationDetails: {
+        ...req.body.applicationDetails,
+        deadline: deadline
+      }
     };
 
     console.log('Creating job with data:', jobData);
 
-    // Create the job
     const job = new Job(jobData);
     await job.save();
 
-    // Populate user details
     const populatedJob = await Job.findById(job._id)
       .populate('postedBy', 'name email')
       .populate('employer', 'name email');

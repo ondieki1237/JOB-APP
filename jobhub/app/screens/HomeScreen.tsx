@@ -17,6 +17,8 @@ import {
   useColorScheme,
   Image,
   ActivityIndicator,
+  FlatList,
+  RefreshControl,
 } from 'react-native';
 import { Ionicons, MaterialCommunityIcons, FontAwesome5 } from '@expo/vector-icons';
 import { StatusBar } from 'expo-status-bar';
@@ -30,6 +32,9 @@ import { BarChart, LineChart } from 'react-native-chart-kit';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { userService } from '../services/userService';
 import { jobService } from '../services/jobService';
+import { Card, Button, Chip } from 'react-native-paper';
+import { LoadingSpinner } from '../components/LoadingSpinner';
+import { formatCurrency, formatDate } from '../utils/formatters';
 
 const { width } = Dimensions.get('window');
 
@@ -113,15 +118,19 @@ const featuredServices: FeaturedService[] = [
 interface Job {
   _id: string;
   title: string;
-  companyDetails: {
-    name: string;
-  };
-  locationName: string;
+  description: string;
   budget: {
     min: number;
     max: number;
   };
+  locationName: string;
   status: string;
+  companyDetails?: {
+    name: string;
+  };
+  applicationDetails?: {
+    deadline: string;
+  };
   createdAt: string;
 }
 
@@ -163,6 +172,11 @@ export default function HomeScreen() {
   const [isLoading, setIsLoading] = useState(true);
   const [username, setUsername] = useState('');
   const [recentJobs, setRecentJobs] = useState<Job[]>([]);
+  const [activeTab, setActiveTab] = useState('recent');
+  const [myJobs, setMyJobs] = useState<Job[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     setTimeout(() => {
@@ -245,7 +259,7 @@ export default function HomeScreen() {
       icon: 'briefcase-check',
       type: 'MaterialCommunityIcons',
       color: ['#43E97B', '#38F9D7'],
-      onPress: () => router.push('/(app)/my-posted-jobs'),
+      onPress: () => setActiveTab('posted'),
     },
     {
       id: '3',
@@ -528,6 +542,96 @@ export default function HomeScreen() {
     router.push('/(app)/workers');
   };
 
+  const fetchMyPostedJobs = async () => {
+    try {
+      setLoading(true);
+      const response = await jobService.getMyPostedJobs();
+      if (response.success) {
+        setMyJobs(response.jobs);
+        setError(null);
+      }
+    } catch (err: any) {
+      console.error('Error fetching posted jobs:', err);
+      setError(err.message || 'Failed to fetch your posted jobs');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (activeTab === 'posted') {
+      fetchMyPostedJobs();
+    }
+  }, [activeTab]);
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await fetchMyPostedJobs();
+    setRefreshing(false);
+  };
+
+  const renderJobCard = ({ item: job }: { item: Job }) => (
+    <Card 
+      style={styles.jobCard}
+      onPress={() => router.push(`/jobs/${job._id}`)}
+    >
+      <Card.Content>
+        <View style={styles.jobHeader}>
+          <View style={styles.titleContainer}>
+            <Text variant="titleMedium" style={styles.jobTitle}>
+              {job.title}
+            </Text>
+            {job.companyDetails?.name && (
+              <Text variant="bodyMedium" style={styles.companyName}>
+                {job.companyDetails.name}
+              </Text>
+            )}
+          </View>
+          <Chip 
+            mode="flat"
+            style={[
+              styles.statusChip,
+              { backgroundColor: job.status === 'Open' ? '#E7F7E8' : '#FFE5E5' }
+            ]}
+          >
+            {job.status}
+          </Chip>
+        </View>
+
+        <Text numberOfLines={2} style={styles.description}>
+          {job.description}
+        </Text>
+
+        <View style={styles.jobDetails}>
+          <View style={styles.detailItem}>
+            <Text variant="labelMedium">Budget:</Text>
+            <Text variant="bodyMedium">
+              {formatCurrency(job.budget.min)} - {formatCurrency(job.budget.max)}
+            </Text>
+          </View>
+
+          <View style={styles.detailItem}>
+            <Text variant="labelMedium">Location:</Text>
+            <Text variant="bodyMedium">{job.locationName}</Text>
+          </View>
+
+          {job.applicationDetails?.deadline && (
+            <View style={styles.detailItem}>
+              <Text variant="labelMedium">Deadline:</Text>
+              <Text variant="bodyMedium">
+                {formatDate(job.applicationDetails.deadline)}
+              </Text>
+            </View>
+          )}
+
+          <Text variant="bodySmall" style={styles.postedDate}>
+            Posted on {new Date(job.createdAt).toLocaleDateString()}
+          </Text>
+        </View>
+      </Card.Content>
+    </Card>
+  );
+
   return (
     <SafeAreaView style={[styles.container, isDark && styles.darkContainer]}>
       <StatusBar style={isDark ? 'light' : 'dark'} />
@@ -789,7 +893,7 @@ export default function HomeScreen() {
                     {job.title}
                   </Text>
                   <Text style={styles.companyName} numberOfLines={1}>
-                    {job.companyDetails.name}
+                    {job.companyDetails?.name}
                   </Text>
                 </View>
                 <View style={[
@@ -945,6 +1049,45 @@ export default function HomeScreen() {
           </TouchableOpacity>
         </View>
       </View>
+
+      {activeTab === 'posted' && (
+        <>
+          {loading ? (
+            <LoadingSpinner message="Loading your posted jobs..." />
+          ) : error ? (
+            <View style={styles.centerContent}>
+              <Text style={styles.errorText}>{error}</Text>
+              <Button mode="contained" onPress={fetchMyPostedJobs}>
+                Retry
+              </Button>
+            </View>
+          ) : myJobs.length === 0 ? (
+            <View style={styles.centerContent}>
+              <Text style={styles.emptyText}>You haven't posted any jobs yet</Text>
+              <Button 
+                mode="contained" 
+                onPress={() => router.push('/post-job')}
+                style={styles.postButton}
+              >
+                Post Your First Job
+              </Button>
+            </View>
+          ) : (
+            <FlatList
+              data={myJobs}
+              renderItem={renderJobCard}
+              keyExtractor={job => job._id}
+              contentContainerStyle={styles.listContainer}
+              refreshControl={
+                <RefreshControl
+                  refreshing={refreshing}
+                  onRefresh={onRefresh}
+                />
+              }
+            />
+          )}
+        </>
+      )}
     </SafeAreaView>
   );
 }
@@ -1717,5 +1860,29 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
     color: '#333',
+  },
+  tabContainer: {
+    flexDirection: 'row',
+    padding: 16,
+    gap: 12,
+  },
+  tabButton: {
+    flex: 1,
+  },
+  listContainer: {
+    padding: 16,
+  },
+  errorText: {
+    color: '#dc3545',
+    marginBottom: 16,
+    textAlign: 'center',
+  },
+  emptyText: {
+    color: '#666',
+    marginBottom: 16,
+    textAlign: 'center',
+  },
+  postButton: {
+    backgroundColor: '#4630EB',
   },
 }); 

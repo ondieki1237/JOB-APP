@@ -17,6 +17,7 @@ import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { jobService } from '../services/jobService';
 import { LoadingSpinner } from '../components/LoadingSpinner';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import DateTimePicker from '@react-native-community/datetimepicker';
 
 const jobTypes = ['Hourly', 'Daily', 'Weekly', 'Monthly', 'Fixed'];
 
@@ -47,11 +48,13 @@ export default function PostJobScreen() {
       email: '',
       phone: '',
     },
+    deadline: new Date(),
   });
 
   const [skillInput, setSkillInput] = useState('');
   const [certificationInput, setCertificationInput] = useState('');
   const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [showDatePicker, setShowDatePicker] = useState(false);
 
   const addSkill = () => {
     if (skillInput.trim() && !formData.skillsRequired.includes(skillInput.trim())) {
@@ -93,9 +96,18 @@ export default function PostJobScreen() {
     });
   };
 
+  const onDateChange = (event: any, selectedDate?: Date) => {
+    setShowDatePicker(false);
+    if (selectedDate) {
+      setFormData(prev => ({
+        ...prev,
+        deadline: selectedDate
+      }));
+    }
+  };
+
   const handleSubmit = async () => {
     try {
-      // Validate required fields
       if (!formData.title || !formData.description || !formData.locationName || 
           !formData.budget.min || !formData.budget.max || !formData.companyDetails.name) {
         Alert.alert('Error', 'Please fill in all required fields');
@@ -104,7 +116,6 @@ export default function PostJobScreen() {
 
       setLoading(true);
 
-      // Convert budget strings to numbers
       const jobData = {
         ...formData,
         budget: {
@@ -113,6 +124,10 @@ export default function PostJobScreen() {
         },
         numberOfOpenings: Number(formData.numberOfOpenings),
         status: 'Open',
+        applicationDetails: {
+          deadline: formData.deadline,
+          howToApply: 'Apply through the platform'
+        }
       };
 
       const response = await jobService.createJob(jobData);
@@ -127,6 +142,102 @@ export default function PostJobScreen() {
   if (loading) {
     return <LoadingSpinner message="Posting job..." />;
   }
+
+  const employeeCountSection = (
+    <View style={styles.section}>
+      <Text variant="labelLarge" style={styles.sectionTitle}>
+        Number of Employees Required *
+        <Text style={styles.helperText}> (How many positions to fill)</Text>
+      </Text>
+      <TextInput
+        mode="outlined"
+        keyboardType="numeric"
+        value={formData.numberOfOpenings}
+        onChangeText={(text) => {
+          const number = text.replace(/[^0-9]/g, '');
+          setFormData(prev => ({
+            ...prev,
+            numberOfOpenings: number || '1'
+          }));
+        }}
+        style={styles.input}
+        placeholder="Enter number of positions"
+        right={<TextInput.Icon icon="account-multiple" />}
+      />
+    </View>
+  );
+
+  const deadlineSection = (
+    <View style={styles.section}>
+      <Text variant="labelLarge" style={styles.sectionTitle}>
+        Application Deadline *
+        <Text style={styles.helperText}> (Select when the job posting should expire)</Text>
+      </Text>
+      <View style={styles.deadlineContainer}>
+        <Button
+          mode="outlined"
+          icon="calendar"
+          onPress={() => setShowDatePicker(true)}
+          style={styles.dateButton}
+          contentStyle={styles.dateButtonContent}
+        >
+          {formData.deadline.toLocaleDateString('en-US', {
+            weekday: 'short',
+            year: 'numeric',
+            month: 'short',
+            day: 'numeric'
+          })}
+        </Button>
+        
+        {Platform.OS === 'android' && showDatePicker && (
+          <DateTimePicker
+            value={formData.deadline}
+            mode="date"
+            display="calendar"
+            onChange={onDateChange}
+            minimumDate={new Date()}
+          />
+        )}
+        
+        {Platform.OS === 'ios' && (
+          <Modal
+            visible={showDatePicker}
+            transparent={true}
+            animationType="slide"
+          >
+            <View style={styles.modalContainer}>
+              <View style={styles.datePickerContainer}>
+                <Text style={styles.datePickerTitle}>Select Deadline</Text>
+                <DateTimePicker
+                  value={formData.deadline}
+                  mode="date"
+                  display="spinner"
+                  onChange={onDateChange}
+                  minimumDate={new Date()}
+                />
+                <View style={styles.datePickerButtons}>
+                  <Button 
+                    mode="outlined"
+                    onPress={() => setShowDatePicker(false)}
+                    style={[styles.datePickerButton, styles.cancelButton]}
+                  >
+                    Cancel
+                  </Button>
+                  <Button 
+                    mode="contained"
+                    onPress={() => setShowDatePicker(false)}
+                    style={styles.datePickerButton}
+                  >
+                    Confirm
+                  </Button>
+                </View>
+              </View>
+            </View>
+          </Modal>
+        )}
+      </View>
+    </View>
+  );
 
   return (
     <SafeAreaView style={styles.container}>
@@ -272,6 +383,9 @@ export default function PostJobScreen() {
               mode="outlined"
               style={styles.input}
             />
+
+            {employeeCountSection}
+            {deadlineSection}
 
             <Button
               mode="contained"
@@ -442,5 +556,56 @@ const styles = StyleSheet.create({
   closeButton: {
     width: '100%',
     backgroundColor: '#4630EB',
+  },
+  deadlineContainer: {
+    marginTop: 8,
+  },
+  section: {
+    marginBottom: 20,
+  },
+  dateButton: {
+    marginVertical: 8,
+    borderColor: '#4630EB',
+    width: '100%',
+  },
+  dateButtonContent: {
+    flexDirection: 'row-reverse',
+    justifyContent: 'flex-start',
+    paddingVertical: 8,
+  },
+  modalContainer: {
+    flex: 1,
+    justifyContent: 'flex-end',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+  },
+  datePickerContainer: {
+    backgroundColor: 'white',
+    padding: 16,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+  },
+  datePickerTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    textAlign: 'center',
+    marginBottom: 16,
+    color: '#333',
+  },
+  datePickerButtons: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 16,
+    gap: 12,
+  },
+  datePickerButton: {
+    flex: 1,
+  },
+  cancelButton: {
+    borderColor: '#4630EB',
+  },
+  helperText: {
+    fontSize: 12,
+    color: '#666',
+    fontWeight: 'normal',
   },
 }); 
