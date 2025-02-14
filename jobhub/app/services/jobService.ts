@@ -83,7 +83,7 @@ export const jobService = {
         throw new Error('Authentication required');
       }
 
-      const response = await api.post('/jobs/create', jobData, {
+      const response = await api.post('/api/jobs/create', jobData, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -101,6 +101,10 @@ export const jobService = {
         throw new Error('Please login to post a job');
       }
       
+      if (error.response?.status === 404) {
+        throw new Error('Endpoint not found. Please check the URL.');
+      }
+      
       throw error.response?.data || { message: 'Failed to create job' };
     }
   },
@@ -114,4 +118,4 @@ export const jobService = {
       throw error.response?.data || { message: 'Failed to apply for job' };
     }
   }
-}; 
+};
